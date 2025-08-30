@@ -193,3 +193,7 @@ TEST(Eblang, StringConcat) {
     maxlang::State g;
     EXPECT_EQ(std::get<std::string>(g.evaluate("\"a\" + \"b\"")), "ab");
 }
+TEST(Eblang, While) {
+    maxlang::State g;
+    EXPECT_EQ(std::get<std::string>(g.evaluate("a = '';while (a != 'aaaaaaaaaa'){a = a + 'a'}")), "aaaaaaaaaa");
+}
