@@ -1,7 +1,7 @@
 #include "array.h"
 #include "util.h"
 #include <iostream>
-
+/*werwerwer*/
 namespace maxlang {
 
     namespace {
@@ -43,5 +43,4 @@ namespace maxlang {
         }
         os << "]";
     }
-
 }
