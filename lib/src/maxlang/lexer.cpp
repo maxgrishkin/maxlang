@@ -61,6 +61,7 @@ std::vector<token::Any> maxlang::lexer::process(std::string_view code) {
                                 {"return", Keyword::RETURN},
                                 {"fn", Keyword::FN},
                                 {"if", Keyword::IF},
+                                {"else", Keyword::ELSE},
                                 {"for", Keyword::FOR},
                                 {"while", Keyword::WHILE},
                                 {"foreach", Keyword::FOREACH},

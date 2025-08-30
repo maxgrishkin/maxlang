@@ -297,7 +297,7 @@ maxlang::expression::CommandSequence maxlang::Parser::parseCommandSequence() {
     return expressions;
 }
 
-std::unique_ptr<maxlang::expression::If> maxlang::Parser::parseIfStatement() {
+std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseIfStatement() {
     assert(std::get<token::Keyword>(peek()) == token::Keyword::IF);
     take();
     if (!std::holds_alternative<token::LPar>(take())) {
@@ -310,9 +310,25 @@ std::unique_ptr<maxlang::expression::If> maxlang::Parser::parseIfStatement() {
     if (!std::holds_alternative<token::LCurlyBracket>(peek())) {
         throw std::runtime_error("Expected '{' after ')'");
     }
-    auto body = parseCommandBlock();
-    return std::make_unique<maxlang::expression::If>(std::move(condition), std::move(body));
+    auto ifBody = parseCommandBlock();
+
+    // Проверяем наличие else
+    if (!mTokens.empty() && std::holds_alternative<token::Keyword>(peek()) &&
+        std::get<token::Keyword>(peek()) == token::Keyword::ELSE) {
+        take(); // consume 'else'
+
+        if (!std::holds_alternative<token::LCurlyBracket>(peek())) {
+            throw std::runtime_error("Expected '{' after 'else'");
+        }
+        auto elseBody = parseCommandBlock();
+
+        return std::make_unique<maxlang::expression::IfElse>(
+            std::move(condition), std::move(ifBody), std::move(elseBody));
+        }
+
+    return std::make_unique<maxlang::expression::If>(std::move(condition), std::move(ifBody));
 }
+
 
 maxlang::expression::CommandSequence maxlang::Parser::parseCommandBlock() {
     auto f1 = take();
@@ -410,6 +426,7 @@ std::string maxlang::Parser::tokenToString(const maxlang::token::Any& token) {
                     case maxlang::token::Keyword::FN: return "fn";
                     case maxlang::token::Keyword::RETURN: return "return";
                     case maxlang::token::Keyword::IF: return "if";
+                    case maxlang::token::Keyword::ELSE: return "else";
                     case maxlang::token::Keyword::FOR: return "for";
                     case maxlang::token::Keyword::WHILE: return "while";
                     case maxlang::token::Keyword::FOREACH: return "foreach";

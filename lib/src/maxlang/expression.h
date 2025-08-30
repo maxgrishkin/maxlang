@@ -542,4 +542,27 @@ namespace maxlang::expression {
 
         Value evaluate(Context& context) override;
     };
+    struct IfElse : Base {
+        IfElse(std::unique_ptr<expression::Base> condition,
+               CommandSequence ifBody,
+               CommandSequence elseBody)
+            : condition(std::move(condition)),
+              ifBody(std::move(ifBody)),
+              elseBody(std::move(elseBody)) {}
+        ~IfElse() override = default;
+
+        std::unique_ptr<expression::Base> condition;
+        CommandSequence ifBody;
+        CommandSequence elseBody;
+
+        Value evaluate(Context& context) override {
+            if (std::get<int>(condition->evaluate(context)) != 0) {
+                expression::execute(ifBody, context);
+            } else {
+                expression::execute(elseBody, context);
+            }
+            return std::monostate {};
+        }
+    };
+
 }

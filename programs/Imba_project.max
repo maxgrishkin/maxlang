@@ -1,6 +1,10 @@
-fn abc(a)
+if (5 < 5)
 {
-    print(a);
-    return;
+    println("aaa");
 }
-abc("sffssdf");
+else {
+    if (5 == 5)
+    {
+        println("bbb");
+    }
+}

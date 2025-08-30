@@ -34,7 +34,7 @@ namespace maxlang {
             mTokens = mTokens.subspan(1);
             return token;
         }
-        std::unique_ptr<maxlang::expression::If> parseIfStatement();
+        std::unique_ptr<maxlang::expression::Base> parseIfStatement();
         std::unique_ptr<maxlang::expression::Return> parseReturnStatement();
         std::unique_ptr<maxlang::expression::For> parseForStatement();
         std::unique_ptr<maxlang::expression::While> parseWhileStatement();

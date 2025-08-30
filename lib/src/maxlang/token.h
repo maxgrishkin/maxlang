@@ -14,6 +14,7 @@ namespace maxlang::token {
         IN,
         BREAK,
         CONTINUE,
+        ELSE,
     };
 
     struct LPar {
