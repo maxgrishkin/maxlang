@@ -3,8 +3,9 @@ project(maxlang_lib)
 
 file(GLOB_RECURSE SRCS src/*.cpp)
 add_library(maxlang_lib STATIC ${SRCS}
-        src/eblang/array.h
-        src/eblang/array.cpp)
+        src/maxlang/array.h
+        src/maxlang/array.cpp
+)
 target_include_directories(maxlang_lib PUBLIC src)
 target_link_libraries(maxlang_lib PUBLIC fmt::fmt)
 

@@ -1,5 +1,5 @@
-#include "eblang/lexer.h"
-#include "eblang/token.h"
+#include "maxlang/lexer.h"
+#include "maxlang/token.h"
 #include <gtest/gtest.h>
 
 using namespace maxlang::token;

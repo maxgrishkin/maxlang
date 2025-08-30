@@ -4,15 +4,10 @@
 #include <memory>
 #include <map>
 #include <functional>
-
 #include "array.h"
 #include "context.h"
 #include "fmt/format.h"
 #include "util.h"
-
-namespace maxlang {
-    struct Array;
-}
 
 namespace maxlang::expression {
     struct ArrayIndex;
@@ -490,5 +485,61 @@ namespace maxlang::expression {
             context.shouldContinue = true;
             return std::monostate{};
         }
+    };
+    struct Function {
+        std::vector<std::string> parameters; // Имена параметров
+        expression::CommandSequence body;    // Тело функции
+        std::function<Value(Context& context, std::vector<Value> args)> value;
+
+        // Конструктор для пользовательских функций
+        Function(std::vector<std::string> params, expression::CommandSequence body)
+            : parameters(std::move(params)), body(std::move(body)) {
+            value = [&](Context& context, std::vector<Value> args) -> Value {
+                if (args.size() != parameters.size()) {
+                    throw std::runtime_error(fmt::format(
+                        "Function expects {} arguments, got {}", parameters.size(), args.size()));
+                }
+
+                // Сохраняем текущие переменные
+                auto oldVariables = std::move(context.variables);
+                context.variables.clear();
+
+                // Устанавливаем аргументы
+                for (size_t i = 0; i < parameters.size(); ++i) {
+                    context.variables[parameters[i]] = args[i];
+                }
+
+                // Выполняем тело функции
+                context.resetReturn();
+                expression::execute(body, context);
+
+                // Восстанавливаем переменные
+                auto result = context.returnValue.value_or(std::monostate{});
+                context.variables = std::move(oldVariables);
+                context.resetReturn();
+
+                return result;
+            };
+        }
+
+        // Конструктор для встроенных функций
+        Function(std::function<Value(Context&, std::vector<Value>)> func)
+            : value(std::move(func)) {}
+    };
+    struct FunctionDeclaration : Base {
+        FunctionDeclaration(std::string name,
+                           std::vector<std::string> parameters,
+                           CommandSequence body)
+            : name(std::move(name)),
+              parameters(std::move(parameters)),
+              body(std::move(body)) {}
+
+        ~FunctionDeclaration() override = default;
+
+        std::string name;
+        std::vector<std::string> parameters;
+        CommandSequence body;
+
+        Value evaluate(Context& context) override;
     };
 }

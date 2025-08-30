@@ -1,4 +1,4 @@
-#include "eblang/state.h"
+#include "maxlang/state.h"
 #include <gtest/gtest.h>
 
 TEST(Eblang, Math1) {

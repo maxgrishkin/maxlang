@@ -1,8 +1,8 @@
 #include <iostream>
 #include <fstream>
 
-#include "eblang/state.h"
-#include "eblang/stdlib.h"
+#include "maxlang/state.h"
+#include "maxlang/stdlib.h"
 
 using namespace maxlang;
 

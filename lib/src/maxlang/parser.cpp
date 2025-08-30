@@ -280,6 +280,9 @@ maxlang::expression::CommandSequence maxlang::Parser::parseCommandSequence() {
                     expressions.push_back(std::make_unique<expression::Continue>());
                     take();
                     goto out;
+                case token::Keyword::FN:
+                    expressions.push_back(parseFunctionDeclaration());
+                    goto out;
             }
         }
         if (std::holds_alternative<token::RCurlyBracket>(peek())) {
@@ -481,4 +484,43 @@ std::unique_ptr<maxlang::expression::ForEach> maxlang::Parser::parseForEachState
         std::move(collection),
         std::move(body)
     );
+}
+std::unique_ptr<maxlang::expression::FunctionDeclaration> maxlang::Parser::parseFunctionDeclaration() {
+    assert(std::get<token::Keyword>(peek()) == token::Keyword::FN);
+    take(); // consume 'function'
+
+    // Парсим имя функции
+    if (!std::holds_alternative<token::Identifier>(peek())) {
+        throw std::runtime_error("Expected function name");
+    }
+    std::string functionName = std::get<token::Identifier>(take()).value;
+
+    // Парсим параметры
+    if (!std::holds_alternative<token::LPar>(take())) {
+        throw std::runtime_error("Expected '(' after function name");
+    }
+
+    std::vector<std::string> parameters;
+    while (!std::holds_alternative<token::RPar>(peek())) {
+        if (!std::holds_alternative<token::Identifier>(peek())) {
+            throw std::runtime_error("Expected parameter name");
+        }
+        parameters.push_back(std::get<token::Identifier>(take()).value);
+
+        if (std::holds_alternative<token::Comma>(peek())) {
+            take(); // consume ','
+        } else if (!std::holds_alternative<token::RPar>(peek())) {
+            throw std::runtime_error("Expected ',' or ')' in parameter list");
+        }
+    }
+    take(); // consume ')'
+
+    // Парсим тело функции
+    if (!std::holds_alternative<token::LCurlyBracket>(peek())) {
+        throw std::runtime_error("Expected '{' after function parameters");
+    }
+    auto body = parseCommandBlock();
+
+    return std::make_unique<expression::FunctionDeclaration>(
+        std::move(functionName), std::move(parameters), std::move(body));
 }

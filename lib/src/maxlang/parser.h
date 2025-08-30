@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "eblang/token.h"
+#include "maxlang/token.h"
 #include "expression.h"
 #include <memory>
 #include <span>
@@ -39,6 +39,7 @@ namespace maxlang {
         std::unique_ptr<maxlang::expression::For> parseForStatement();
         std::unique_ptr<maxlang::expression::While> parseWhileStatement();
         std::unique_ptr<maxlang::expression::ForEach> parseForEachStatement();
+        std::unique_ptr<maxlang::expression::FunctionDeclaration> parseFunctionDeclaration();
 
         /**
          * @brief Like parseCommandSequence but also consumes '{' and '}'.
