@@ -34,4 +34,5 @@ cmake --build .
 # Usage
 
 ```bash
+suffer some bullshit
 ```
