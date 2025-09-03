@@ -10,7 +10,7 @@ namespace maxlang {
 
     class Parser {
     public:
-        explicit Parser(std::span<maxlang::token::Any> tokens) : mTokens(tokens) {}
+        explicit Parser(std::span<std::pair<token::Any,int>> tokens) : mTokens(tokens) {}
 
         std::unique_ptr<maxlang::expression::Base> parseExpression() {
             return parseExpression(0);
@@ -21,15 +21,15 @@ namespace maxlang {
         std::string tokenToString(const token::Any & any);
 
     private:
-        std::span<maxlang::token::Any> mTokens;
+        std::span<std::pair<maxlang::token::Any,int>> mTokens;
 
         std::unique_ptr<maxlang::expression::Base> parseExpression(int leftBindingPower);
 
-        const token::Any& peek() const {
+        const std::pair<token::Any,int> peek() const {
             return mTokens.front();
         }
 
-        token::Any take() {
+        std::pair<token::Any,int> take() {
             auto token = std::move(mTokens.front());
             mTokens = mTokens.subspan(1);
             return token;

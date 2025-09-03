@@ -21,37 +21,37 @@ std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseExpression(int 
           [&](token::LPar token) -> std::unique_ptr<expression::Base> {
               auto lhs = parseExpression(0);
               auto n = take();
-              if (!std::holds_alternative<token::RPar>(n)) {
-                  throw std::runtime_error(fmt::format("Expected ')' to close '(', got {}", tokenToString(n)));
+              if (!std::holds_alternative<token::RPar>(n.first)) {
+                  throw std::runtime_error(fmt::format("Expected ')' to close '(', got {}, at line {}", tokenToString(n.first),n.second));
               }
               return lhs;
           },
           [&](token::Identifier identifier) -> std::unique_ptr<expression::Base> {
     // 1. variable reference
     // 2. function call
-    if (std::holds_alternative<token::LPar>(peek())) {
+    if (std::holds_alternative<token::LPar>(peek().first)) {
         take();
         std::vector<std::unique_ptr<expression::Base>> args;
         for (;;) {
             auto n = peek();
-            if (std::holds_alternative<token::RPar>(n)) {
+            if (std::holds_alternative<token::RPar>(n.first)) {
                 take();
                 if (!args.empty()) {
-                    throw std::runtime_error("Unexpected ')' after ','");
+                    throw std::runtime_error(fmt::format("Unexpected ')' after ',', at line {}",n.second));
                 }
                 break;
             }
             args.push_back(parseExpression());
-            if (std::holds_alternative<token::Comma>(peek())) {
+            if (std::holds_alternative<token::Comma>(peek().first)) {
                 take();
                 continue;
             }
-            if (std::holds_alternative<token::RPar>(peek())) {
+            if (std::holds_alternative<token::RPar>(peek().first)) {
                 take();
                 break;
             }
             throw std::runtime_error(
-                fmt::format("Expected ',' or ')' to close argument list, got {}", typeid(n).name()));
+                fmt::format("Expected ',' or ')' to close argument list, got {}, at line {}", typeid(n).name(),n.second));
         }
         return std::make_unique<expression::FunctionCall>(std::move(identifier.value), std::move(args));
     }
@@ -59,18 +59,18 @@ std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseExpression(int 
     auto variableRef = std::make_unique<expression::VariableReference>(std::move(identifier.value));
 
     // Проверяем индексацию массива
-    if (std::holds_alternative<token::LSquareBracket>(peek())) {
+    if (std::holds_alternative<token::LSquareBracket>(peek().first)) {
     take();
 
     auto index = parseExpression();
 
     if (mTokens.empty()) {
-        throw std::runtime_error("Unexpected end of input after array index");
+        throw std::runtime_error(fmt::format("Unexpected end of input after array index",peek().second));
     }
 
-    if (!std::holds_alternative<token::RSquareBracket>(peek())) {
-        throw std::runtime_error(fmt::format("Expected ']' after array index, got {}",
-            tokenToString(peek())));
+    if (!std::holds_alternative<token::RSquareBracket>(peek().first)) {
+        throw std::runtime_error(fmt::format("Expected ']' after array index, got {}, at line {}",
+            tokenToString(peek().first),peek().second));
     }
     take();
 
@@ -83,7 +83,7 @@ std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseExpression(int 
             [&](token::LSquareBracket token) -> std::unique_ptr<expression::Base> {
     std::vector<std::unique_ptr<expression::Base>> elements;
 
-    if (std::holds_alternative<token::RSquareBracket>(peek())) {
+    if (std::holds_alternative<token::RSquareBracket>(peek().first)) {
         take();
         return std::make_unique<expression::ArrayCreation>(std::move(elements), "");
     }
@@ -95,37 +95,38 @@ std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseExpression(int 
             throw std::runtime_error("Unexpected end of input in array literal");
         }
 
-        if (std::holds_alternative<token::RSquareBracket>(peek())) {
+        if (std::holds_alternative<token::RSquareBracket>(peek().first)) {
             take();
             break;
         }
 
-        if (std::holds_alternative<token::Comma>(peek())) {
+        if (std::holds_alternative<token::Comma>(peek().first)) {
             take();
             continue;
         }
 
-        throw std::runtime_error(fmt::format("Expected ',' or ']' in array literal, got {}",
-            tokenToString(peek())));
+        throw std::runtime_error(fmt::format("Expected ',' or ']' in array literal, got {}, at line {}",
+            tokenToString(peek().first),peek().second));
     }
 
     return std::make_unique<expression::ArrayCreation>(std::move(elements), "");
 },
 
           [&](auto&& token) -> std::unique_ptr<expression::Base> {
-              throw std::runtime_error(fmt::format("Unexpected token: {}", tokenToString(peek())));
+              throw std::runtime_error(fmt::format("Unexpected token: {}, at line {}", tokenToString(peek().first),peek().second));
           },
         },
-        take());
-    if (std::holds_alternative<token::LSquareBracket>(peek())) {
+        take().first);
+    if (std::holds_alternative<token::LSquareBracket>(peek().first)) {
         take(); // consume '['
         auto index = parseExpression();
-        if (!std::holds_alternative<token::RSquareBracket>(take())) {
-            throw std::runtime_error("Expected ']' after index");
+        auto n = take();
+        if (!std::holds_alternative<token::RSquareBracket>(n.first)) {
+            throw std::runtime_error(fmt::format("Expected ']' after index",n.second));
         }
 
         // Проверяем, является ли это присваиванием
-        if (std::holds_alternative<token::Equal>(peek())) {
+        if (std::holds_alternative<token::Equal>(peek().first)) {
             take(); // consume '='
             auto value = parseExpression();
             return std::make_unique<expression::ArrayAssignment>(
@@ -135,11 +136,11 @@ std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseExpression(int 
         return std::make_unique<expression::ArrayIndex>(std::move(lhs), std::move(index));
     }
     if (!mTokens.empty()) {
-        if (std::holds_alternative<token::PlusPlus>(peek())) {
+        if (std::holds_alternative<token::PlusPlus>(peek().first)) {
             take(); // consume '++'
             lhs = std::make_unique<expression::PostfixIncrement>(std::move(lhs));
         }
-        if (std::holds_alternative<token::MinusMinus>(peek())) {
+        if (std::holds_alternative<token::MinusMinus>(peek().first)) {
             take(); // consume '--'
             lhs = std::make_unique<expression::PostfixDecrement>(std::move(lhs));
         }
@@ -148,19 +149,19 @@ std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseExpression(int 
         if (mTokens.empty()) {
             break;
         }
-        if (std::holds_alternative<token::RSquareBracket>(peek())) {
+        if (std::holds_alternative<token::RSquareBracket>(peek().first)) {
             break;
         }
-        if (std::holds_alternative<token::RPar>(peek())) {
+        if (std::holds_alternative<token::RPar>(peek().first)) {
             break;
         }
-        if (std::holds_alternative<token::Semicolon>(peek())) {
+        if (std::holds_alternative<token::Semicolon>(peek().first)) {
             break;
         }
-        if (std::holds_alternative<token::Comma>(peek())) {
+        if (std::holds_alternative<token::Comma>(peek().first)) {
             break;
         }
-        if (std::holds_alternative<token::Equal>(peek())) {
+        if (std::holds_alternative<token::Equal>(peek().first)) {
             take();
             auto rhs = parseExpression(0);
 
@@ -180,7 +181,7 @@ std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseExpression(int 
                 break;
             }
 
-            throw std::runtime_error("Expected variable or array element on left side of assignment");
+            throw std::runtime_error(fmt::format("Expected variable or array element on left side of assignment, at line {}",peek().second));
         }
 
         int rightBindingPower = std::visit(
@@ -197,10 +198,10 @@ std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseExpression(int 
       [](token::Slash token) { return 2; },
       [](token::LSquareBracket token) { return 10; },
       [&](auto&& token) -> int {
-          throw std::runtime_error(fmt::format("Unexpected token: {}", tokenToString(peek())));
+          throw std::runtime_error(fmt::format("Unexpected token: {}, at line {}", tokenToString(peek().first),peek().second));
       },
     },
-    peek());
+    peek().first);
 
         if (rightBindingPower < leftBindingPower) {
             return lhs;
@@ -242,10 +243,10 @@ lhs = std::visit(
           return std::make_unique<expression::Binary<std::divides<>>>(std::move(lhs), std::move(rhs));
       },
       [&](auto&& token) -> std::unique_ptr<expression::Base> {
-          throw std::runtime_error(fmt::format("Unexpected token: {}", tokenToString(opToken)));
+          throw std::runtime_error(fmt::format("Unexpected token: {}, at line {}", tokenToString(opToken.first),peek().second));
       },
     },
-    opToken);
+    opToken.first);
     }
 
     return lhs;
@@ -253,98 +254,137 @@ lhs = std::visit(
 
 maxlang::expression::CommandSequence maxlang::Parser::parseCommandSequence() {
     std::vector<std::unique_ptr<expression::Base>> expressions;
-    out:
+
     while (!mTokens.empty()) {
-        if (auto keyword = std::get_if<token::Keyword>(&peek())) {
+        auto current = peek();
+
+        // Проверяем, является ли текущий токен ключевым словом
+        if (auto keyword = std::get_if<token::Keyword>(&current.first)) {
             switch (*keyword) {
                 case token::Keyword::IF:
                     expressions.push_back(parseIfStatement());
-                    goto out;
+                    continue; // Уже обработали, переходим к следующему токену
                 case token::Keyword::RETURN:
                     expressions.push_back(parseReturnStatement());
-                    goto out;
+                    continue;
                 case token::Keyword::FOR:
                     expressions.push_back(parseForStatement());
-                    goto out;
+                    continue;
                 case token::Keyword::WHILE:
                     expressions.push_back(parseWhileStatement());
-                    goto out;
+                    continue;
                 case token::Keyword::FOREACH:
                     expressions.push_back(parseForEachStatement());
-                    goto out;
+                    continue;
                 case token::Keyword::BREAK:
                     expressions.push_back(std::make_unique<expression::Break>());
                     take();
-                    goto out;
+                    continue;
                 case token::Keyword::CONTINUE:
                     expressions.push_back(std::make_unique<expression::Continue>());
                     take();
-                    goto out;
+                    continue;
                 case token::Keyword::FN:
                     expressions.push_back(parseFunctionDeclaration());
-                    goto out;
+                    continue;
+                case token::Keyword::ELSE:
+                    // Обработка else должна быть в parseIfStatement
+                    break;
             }
         }
-        if (std::holds_alternative<token::RCurlyBracket>(peek())) {
+
+        // Если это не ключевое слово, парсим как выражение
+        if (std::holds_alternative<token::RCurlyBracket>(peek().first)) {
             break;
         }
-        if (std::holds_alternative<token::Semicolon>(peek())) {
+        if (std::holds_alternative<token::Semicolon>(peek().first)) {
             take();
             continue;
         }
+
         expressions.push_back(parseExpression());
     }
     return expressions;
 }
 
 std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseIfStatement() {
-    assert(std::get<token::Keyword>(peek()) == token::Keyword::IF);
-    take();
-    if (!std::holds_alternative<token::LPar>(take())) {
-        throw std::runtime_error("Expected '(' after 'if'");
+    // Убедимся, что это действительно IF
+    auto ifToken = take();
+    if (!std::holds_alternative<token::Keyword>(ifToken.first) ||
+        std::get<token::Keyword>(ifToken.first) != token::Keyword::IF) {
+        throw std::runtime_error("Internal error: parseIfStatement called without IF token");
     }
+
+    // Проверяем открывающую скобку с помощью peek
+    auto lparToken = peek();
+    if (!std::holds_alternative<token::LPar>(lparToken.first)) {
+        throw std::runtime_error(fmt::format("Expected '(' after 'if', at line {}", lparToken.second));
+    }
+    take(); // consume '('
+
+    // Парсим условие
     auto condition = parseExpression();
-    if (!std::holds_alternative<token::RPar>(take())) {
-        throw std::runtime_error("Expected ')' after condition");
+
+    // Проверяем закрывающую скобку
+    auto rparToken = take();
+    if (!std::holds_alternative<token::RPar>(rparToken.first)) {
+        throw std::runtime_error(fmt::format("Expected ')' after condition, at line {}", rparToken.second));
     }
-    if (!std::holds_alternative<token::LCurlyBracket>(peek())) {
-        throw std::runtime_error("Expected '{' after ')'");
+
+    // Проверяем открывающую фигурную скобку
+    auto lcurlyToken = peek();
+    if (!std::holds_alternative<token::LCurlyBracket>(lcurlyToken.first)) {
+        throw std::runtime_error(fmt::format("Expected '{{' after ')', at line {}", lcurlyToken.second));
     }
+
     auto ifBody = parseCommandBlock();
 
     // Проверяем наличие else
-    if (!mTokens.empty() && std::holds_alternative<token::Keyword>(peek()) &&
-        std::get<token::Keyword>(peek()) == token::Keyword::ELSE) {
+    if (!mTokens.empty() &&
+        std::holds_alternative<token::Keyword>(peek().first) &&
+        std::get<token::Keyword>(peek().first) == token::Keyword::ELSE) {
+
         take(); // consume 'else'
 
-        if (!std::holds_alternative<token::LCurlyBracket>(peek())) {
-            throw std::runtime_error("Expected '{' after 'else'");
+        if (!std::holds_alternative<token::LCurlyBracket>(peek().first)) {
+            throw std::runtime_error(fmt::format("Expected '{{' after 'else', at line {}", peek().second));
         }
-        auto elseBody = parseCommandBlock();
 
+        auto elseBody = parseCommandBlock();
         return std::make_unique<maxlang::expression::IfElse>(
             std::move(condition), std::move(ifBody), std::move(elseBody));
-        }
+    }
 
     return std::make_unique<maxlang::expression::If>(std::move(condition), std::move(ifBody));
 }
 
 
 maxlang::expression::CommandSequence maxlang::Parser::parseCommandBlock() {
-    auto f1 = take();
-    assert(std::holds_alternative<token::LCurlyBracket>(f1));
-    auto result = parseCommandSequence();
-    auto f2 = take();
-    if (!std::holds_alternative<token::RCurlyBracket>(f2)) {
-        throw std::runtime_error("Expected '}' that closes the command block");
+    auto openBrace = take();
+    if (!std::holds_alternative<token::LCurlyBracket>(openBrace.first)) {
+        throw std::runtime_error(fmt::format("Expected '{{', got {}, at line {}",
+            tokenToString(openBrace.first), openBrace.second));
     }
+
+    auto result = parseCommandSequence();
+
+    if (mTokens.empty()) {
+        throw std::runtime_error("Unexpected end of input in command block");
+    }
+
+    auto closeBrace = take();
+    if (!std::holds_alternative<token::RCurlyBracket>(closeBrace.first)) {
+        throw std::runtime_error(fmt::format("Expected '}}' to close command block, got {}, at line {}",
+            tokenToString(closeBrace.first), closeBrace.second));
+    }
+
     return result;
 }
 
 std::unique_ptr<maxlang::expression::Return> maxlang::Parser::parseReturnStatement() {
-    assert(std::get<token::Keyword>(peek()) == token::Keyword::RETURN);
+    assert(std::get<token::Keyword>(peek().first) == token::Keyword::RETURN);
     take();
-    if (std::holds_alternative<token::Semicolon>(peek())) {
+    if (std::holds_alternative<token::Semicolon>(peek().first)) {
         // return;
         return std::make_unique<expression::Return>(nullptr);
     }
@@ -354,43 +394,46 @@ std::unique_ptr<maxlang::expression::Return> maxlang::Parser::parseReturnStateme
 }
 
 std::unique_ptr<maxlang::expression::For> maxlang::Parser::parseForStatement() {
-    assert(std::get<token::Keyword>(peek()) == token::Keyword::FOR);
+    assert(std::get<token::Keyword>(peek().first) == token::Keyword::FOR);
     take(); // consume 'for'
-
-    if (!std::holds_alternative<token::LPar>(take())) {
-        throw std::runtime_error("Expected '(' after 'for'");
+    auto n = take();
+    if (!std::holds_alternative<token::LPar>(n.first)) {
+        throw std::runtime_error(fmt::format("Expected '(' after 'for', at line {}",n.second));
     }
 
     // Парсим инициализацию (может быть пустой)
     std::unique_ptr<expression::Base> initialization = nullptr;
-    if (!std::holds_alternative<token::Semicolon>(peek())) {
+    if (!std::holds_alternative<token::Semicolon>(peek().first)) {
         initialization = parseExpression();
     }
-    if (!std::holds_alternative<token::Semicolon>(take())) {
-        throw std::runtime_error("Expected ';' after for initialization");
+    n = take();
+    if (!std::holds_alternative<token::Semicolon>(take().first)) {
+        throw std::runtime_error(fmt::format("Expected ';' after for initialization at line {}",n.second));
     }
 
     // Парсим условие (может быть пустым)
     std::unique_ptr<expression::Base> condition = nullptr;
-    if (!std::holds_alternative<token::Semicolon>(peek())) {
+    if (!std::holds_alternative<token::Semicolon>(peek().first)) {
         condition = parseExpression();
     }
-    if (!std::holds_alternative<token::Semicolon>(take())) {
-        throw std::runtime_error("Expected ';' after for condition");
+    n = take();
+    if (!std::holds_alternative<token::Semicolon>(take().first)) {
+        throw std::runtime_error(fmt::format("Expected ';' after for condition, at line {}",n.second));
     }
 
     // Парсим инкремент (может быть пустым)
     std::unique_ptr<expression::Base> increment = nullptr;
-    if (!std::holds_alternative<token::RPar>(peek())) {
+    if (!std::holds_alternative<token::RPar>(peek().first)) {
         increment = parseExpression();
     }
-    if (!std::holds_alternative<token::RPar>(take())) {
-        throw std::runtime_error("Expected ')' after for increment");
+    n = take();
+    if (!std::holds_alternative<token::RPar>(take().first)) {
+        throw std::runtime_error(fmt::format("Expected ')' after for increment, at line {}",n.second));
     }
 
     // Парсим тело цикла
-    if (!std::holds_alternative<token::LCurlyBracket>(peek())) {
-        throw std::runtime_error("Expected '{' after for statement");
+    if (!std::holds_alternative<token::LCurlyBracket>(peek().first)) {
+        throw std::runtime_error(fmt::format("Expected '{}' after for statement","{",peek().second));
     }
     auto body = parseCommandBlock();
 
@@ -403,21 +446,30 @@ std::unique_ptr<maxlang::expression::For> maxlang::Parser::parseForStatement() {
 }
 
 std::unique_ptr<maxlang::expression::While> maxlang::Parser::parseWhileStatement() {
-    assert(std::get<token::Keyword>(peek()) == token::Keyword::WHILE);
+    assert(std::get<token::Keyword>(peek().first) == token::Keyword::WHILE);
     take();
-    if (!std::holds_alternative<token::LPar>(take())) {
-        throw std::runtime_error("Expected '(' after 'while'");
+
+    // ИСПРАВЬТЕ ТАКЖЕ ЗДЕСЬ:
+    auto n = peek();  // используем peek() вместо take()
+    if (!std::holds_alternative<token::LPar>(n.first)) {
+        throw std::runtime_error(fmt::format("Expected '(' after 'while', at line {}", n.second));
     }
+    take(); // consume '('
+
     auto condition = parseExpression();
-    if (!std::holds_alternative<token::RPar>(take())) {
-        throw std::runtime_error("Expected ')' after condition");
+
+    n = peek();  // используем peek() для проверки ')'
+    if (!std::holds_alternative<token::RPar>(n.first)) {
+        throw std::runtime_error(fmt::format("Expected ')' after condition, at line {}", n.second));
     }
-    if (!std::holds_alternative<token::LCurlyBracket>(peek())) {
-        throw std::runtime_error("Expected '{' after ')'");
+    take();
+    if (!std::holds_alternative<token::LCurlyBracket>(peek().first)) {
+        throw std::runtime_error(fmt::format("Expected '{}' after ')', at line {}","{",peek().second));
     }
     auto body = parseCommandBlock();
     return std::make_unique<maxlang::expression::While>(std::move(condition), std::move(body));
 }
+
 std::string maxlang::Parser::tokenToString(const maxlang::token::Any& token) {
     return std::visit(
         maxlang::match {
@@ -464,35 +516,35 @@ std::string maxlang::Parser::tokenToString(const maxlang::token::Any& token) {
         token);
 }
 std::unique_ptr<maxlang::expression::ForEach> maxlang::Parser::parseForEachStatement() {
-    assert(std::get<token::Keyword>(peek()) == token::Keyword::FOREACH);
+    assert(std::get<token::Keyword>(peek().first) == token::Keyword::FOREACH);
     take(); // consume 'foreach'
-
-    if (!std::holds_alternative<token::LPar>(take())) {
-        throw std::runtime_error("Expected '(' after 'foreach'");
+    auto n = take();
+    if (!std::holds_alternative<token::LPar>(n.first)) {
+        throw std::runtime_error(fmt::format("Expected '(' after 'foreach', at line {}",n.second));
     }
 
     // Парсим имя переменной
-    if (!std::holds_alternative<token::Identifier>(peek())) {
-        throw std::runtime_error("Expected variable name in foreach");
+    if (!std::holds_alternative<token::Identifier>(peek().first)) {
+        throw std::runtime_error(fmt::format("Expected variable name in foreach, at line {}",peek().second));
     }
-    std::string variableName = std::get<token::Identifier>(take()).value;
+    std::string variableName = std::get<token::Identifier>(take().first).value;
 
-    if (!std::holds_alternative<token::Keyword>(peek()) ||
-        std::get<token::Keyword>(peek()) != token::Keyword::IN) {
-        throw std::runtime_error("Expected 'in' after variable name");
+    if (!std::holds_alternative<token::Keyword>(peek().first) ||
+        std::get<token::Keyword>(peek().first) != token::Keyword::IN) {
+        throw std::runtime_error(fmt::format("Expected 'in' after variable name, at line {}",peek().second));
         }
     take(); // consume 'in'
 
     // Парсим коллекцию (массив)
     auto collection = parseExpression();
 
-    if (!std::holds_alternative<token::RPar>(take())) {
-        throw std::runtime_error("Expected ')' after collection");
+    if (!std::holds_alternative<token::RPar>(take().first)) {
+        throw std::runtime_error(fmt::format("Expected ')' after collection, at line {}",peek().second));
     }
 
     // Парсим тело цикла
-    if (!std::holds_alternative<token::LCurlyBracket>(peek())) {
-        throw std::runtime_error("Expected '{' after foreach statement");
+    if (!std::holds_alternative<token::LCurlyBracket>(peek().first)) {
+        throw std::runtime_error(fmt::format("Expected '{}' after foreach statement, at line {}","{",peek().second));
     }
     auto body = parseCommandBlock();
 
@@ -503,38 +555,39 @@ std::unique_ptr<maxlang::expression::ForEach> maxlang::Parser::parseForEachState
     );
 }
 std::unique_ptr<maxlang::expression::FunctionDeclaration> maxlang::Parser::parseFunctionDeclaration() {
-    assert(std::get<token::Keyword>(peek()) == token::Keyword::FN);
+    assert(std::get<token::Keyword>(peek().first) == token::Keyword::FN);
     take(); // consume 'function'
 
     // Парсим имя функции
-    if (!std::holds_alternative<token::Identifier>(peek())) {
-        throw std::runtime_error("Expected function name");
+    if (!std::holds_alternative<token::Identifier>(peek().first)) {
+        throw std::runtime_error(fmt::format("Expected function name, at line {}",peek().second));
     }
-    std::string functionName = std::get<token::Identifier>(take()).value;
+    std::string functionName = std::get<token::Identifier>(take().first).value;
 
+    auto n = take();
     // Парсим параметры
-    if (!std::holds_alternative<token::LPar>(take())) {
-        throw std::runtime_error("Expected '(' after function name");
+    if (!std::holds_alternative<token::LPar>(n.first)) {
+        throw std::runtime_error(fmt::format("Expected '(' after function name, at line {}",n.second));
     }
 
     std::vector<std::string> parameters;
-    while (!std::holds_alternative<token::RPar>(peek())) {
-        if (!std::holds_alternative<token::Identifier>(peek())) {
-            throw std::runtime_error("Expected parameter name");
+    while (!std::holds_alternative<token::RPar>(peek().first)) {
+        if (!std::holds_alternative<token::Identifier>(peek().first)) {
+            throw std::runtime_error(fmt::format("Expected parameter name, at line {}",peek().second));
         }
-        parameters.push_back(std::get<token::Identifier>(take()).value);
+        parameters.push_back(std::get<token::Identifier>(take().first).value);
 
-        if (std::holds_alternative<token::Comma>(peek())) {
+        if (std::holds_alternative<token::Comma>(peek().first)) {
             take(); // consume ','
-        } else if (!std::holds_alternative<token::RPar>(peek())) {
-            throw std::runtime_error("Expected ',' or ')' in parameter list");
+        } else if (!std::holds_alternative<token::RPar>(peek().first)) {
+            throw std::runtime_error(fmt::format("Expected ',' or ')' in parameter list, at line {}",peek().second));
         }
     }
     take(); // consume ')'
 
     // Парсим тело функции
-    if (!std::holds_alternative<token::LCurlyBracket>(peek())) {
-        throw std::runtime_error("Expected '{' after function parameters");
+    if (!std::holds_alternative<token::LCurlyBracket>(peek().first)) {
+        throw std::runtime_error(fmt::format("Expected '{}' after function parameters, at line {}","{",peek().second));
     }
     auto body = parseCommandBlock();
 

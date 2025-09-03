@@ -97,7 +97,7 @@ namespace maxlang::expression {
         CommandSequence body;
 
         Value evaluate(Context& context) override {
-            if (std::get<int>(condition->evaluate(context)) != 0) {
+            if (getIntFromValue(condition->evaluate(context), "if condition") != 0) {
                 expression::execute(body, context);
             }
             return std::monostate {};
@@ -112,7 +112,7 @@ namespace maxlang::expression {
 
         Value evaluate(Context& context) override {
             context.returnValue = expression != nullptr ? expression->evaluate(context) : std::monostate {};
-            context.shouldReturn = true; // ← установить флаг возврата
+            context.shouldReturn = true;
             return std::monostate {};
         }
     };
@@ -139,7 +139,7 @@ namespace maxlang::expression {
                 }
 
                 Value condValue = condition->evaluate(context);
-                if (std::get<int>(condValue) == 0) {
+                if (getIntFromValue(condValue, "условии while") == 0) {
                     break;
                 }
 
@@ -188,7 +188,7 @@ namespace maxlang::expression {
 
                 if (condition) {
                     Value condValue = condition->evaluate(context);
-                    if (std::get<int>(condValue) == 0) {
+                    if (getIntFromValue(condValue, "условии for") == 0) {
                         break;
                     }
                 }
@@ -556,7 +556,7 @@ namespace maxlang::expression {
         CommandSequence elseBody;
 
         Value evaluate(Context& context) override {
-            if (std::get<int>(condition->evaluate(context)) != 0) {
+            if (getIntFromValue(condition->evaluate(context), "if-else condition") != 0) {
                 expression::execute(ifBody, context);
             } else {
                 expression::execute(elseBody, context);

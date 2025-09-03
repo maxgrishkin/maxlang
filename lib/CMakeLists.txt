@@ -5,6 +5,7 @@ file(GLOB_RECURSE SRCS src/*.cpp)
 add_library(maxlang_lib STATIC ${SRCS}
         src/maxlang/array.h
         src/maxlang/array.cpp
+        src/maxlang/util.cpp
 )
 target_include_directories(maxlang_lib PUBLIC src)
 target_link_libraries(maxlang_lib PUBLIC fmt::fmt)

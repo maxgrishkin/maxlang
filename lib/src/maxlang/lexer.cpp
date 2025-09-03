@@ -9,11 +9,11 @@
 using namespace maxlang;
 using namespace maxlang::token;
 
-std::vector<token::Any> maxlang::lexer::process(std::string_view code) {
+std::vector<std::pair<token::Any,int>> maxlang::lexer::process(std::string_view code) {
     int line = 1;
     bool singleLineComment = false;
     bool multiLineComment = false;
-    std::vector<token::Any> result;
+    std::vector<std::pair<token::Any,int>> result;
 
     for (auto it = code.begin(); it != code.end(); ++it) {
         auto remainingString = std::ranges::subrange(it, code.end());
@@ -71,10 +71,10 @@ std::vector<token::Any> maxlang::lexer::process(std::string_view code) {
                         };
 
                             if (auto keyword = keywords.find(valueString); keyword != keywords.end()) {
-                                result.push_back(keyword->second);
+                                result.push_back(std::make_pair(keyword->second,line));
                                 break;
                             }
-                            result.push_back(Identifier{.value = std::string(valueString)});
+                            result.push_back(std::make_pair(Identifier{.value = std::string(valueString)},line));
                             break;
                         }
 
@@ -85,7 +85,7 @@ std::vector<token::Any> maxlang::lexer::process(std::string_view code) {
                             std::string_view digitString(it, end);
                             int integer = 0;
                             std::from_chars(digitString.data(), digitString.data() + digitString.size(), integer);
-                            result.push_back(Integer{.value = integer});
+                            result.push_back(std::make_pair(Integer{.value = integer},line));
                             it = std::prev(end);
                             break;
                         }
@@ -102,68 +102,68 @@ std::vector<token::Any> maxlang::lexer::process(std::string_view code) {
                         break;
 
                     case '(':
-                        result.push_back(LPar{});
+                        result.push_back(std::make_pair(LPar{},line));
                         break;
                     case ')':
-                        result.push_back(RPar{});
+                        result.push_back(std::make_pair(RPar{},line));
                         break;
                     case '{':
-                        result.push_back(LCurlyBracket{});
+                        result.push_back(std::make_pair(LCurlyBracket{},line));
                         break;
                     case '}':
-                        result.push_back(RCurlyBracket{});
+                        result.push_back(std::make_pair(RCurlyBracket{},line));
                         break;
                     case '[':
-                        result.push_back(LSquareBracket{});
+                        result.push_back(std::make_pair(LSquareBracket{},line));
                         break;
                     case ']':
-                        result.push_back(RSquareBracket{});
+                        result.push_back(std::make_pair(RSquareBracket{},line));
                         break;
                     case '<':
                         if ((std::next(it) != code.end())) {
                             if (*std::next(it) == '=') {
                                 it++;
-                                result.push_back(LAngleBracketEqual{});
+                                result.push_back(std::make_pair(LAngleBracketEqual{},line));
                                 break;
                             }
                         }
-                        result.push_back(LAngleBracket{});
+                        result.push_back(std::make_pair(LAngleBracket{},line));
                         break;
                     case '>':
                         if ((std::next(it) != code.end())) {
                             if (*std::next(it) == '=') {
                                 it++;
-                                result.push_back(RAngleBracketEqual{});
+                                result.push_back(std::make_pair(RAngleBracketEqual{},line));
                                 break;
                             }
                         }
-                        result.push_back(RAngleBracket{});
+                        result.push_back(std::make_pair(RAngleBracket{},line));
                         break;
                     case ';':
-                        result.push_back(Semicolon{});
+                        result.push_back(std::make_pair(Semicolon{},line));
                         break;
                     case '+':
                         if ((std::next(it) != code.end())) {
                             if (*std::next(it) == '+') {
                                 it++;
-                                result.push_back(PlusPlus{});
+                                result.push_back(std::make_pair(PlusPlus{},line));
                                 break;
                             }
                         }
-                        result.push_back(Plus{});
+                        result.push_back(std::make_pair(Plus{},line));
                         break;
                     case '-':
                         if ((std::next(it) != code.end())) {
                             if (*std::next(it) == '-') {
                                 it++;
-                                result.push_back(MinusMinus{});
+                                result.push_back(std::make_pair(MinusMinus{},line));
                                 break;
                             }
                         }
-                        result.push_back(Minus{});
+                        result.push_back(std::make_pair(Minus{},line));
                         break;
                     case '*':
-                        result.push_back(Asterisk{});
+                        result.push_back(std::make_pair(Asterisk{},line));
                         break;
                     case '/':
                         if ((std::next(it) != code.end())) {
@@ -178,27 +178,27 @@ std::vector<token::Any> maxlang::lexer::process(std::string_view code) {
                                 break;
                             }
                         }
-                        result.push_back(Slash{});
+                        result.push_back(std::make_pair(Slash{},line));
                         break;
                     case ',':
-                        result.push_back(Comma{});
+                        result.push_back(std::make_pair(Comma{},line));
                         break;
 
                     case '=':
                         if (std::next(it) != code.end()) {
                             if (*std::next(it) == '=') {
                                 it++;
-                                result.push_back(Equal2{});
+                                result.push_back(std::make_pair(Equal2{},line));
                                 break;
                             }
                         }
-                        result.push_back(Equal{});
+                        result.push_back(std::make_pair(Equal{},line));
                         break;
                     case '!':
                         if (std::next(it) != code.end()) {
                             if (*std::next(it) == '=') {
                                 it++;
-                                result.push_back(NoEqual{});
+                                result.push_back(std::make_pair(NoEqual{},line));
                                 break;
                             }
                         }
@@ -208,7 +208,7 @@ std::vector<token::Any> maxlang::lexer::process(std::string_view code) {
                         if (string_end == remainingString.end()) {
                             throw std::runtime_error(fmt::format("String literal is not finished, at line {}", line));
                         }
-                        result.push_back(String{.value = std::string(std::next(it), string_end)});
+                        result.push_back(std::make_pair(String{.value = std::string(std::next(it), string_end)},line));
                         it = string_end;
                         break;
                     }
@@ -218,7 +218,7 @@ std::vector<token::Any> maxlang::lexer::process(std::string_view code) {
                         if (string_end == remainingString.end()) {
                             throw std::runtime_error(fmt::format("String literal is not finished, at line {}", line));
                         }
-                        result.push_back(String{.value = std::string(std::next(it), string_end)});
+                        result.push_back(std::make_pair(String{.value = std::string(std::next(it), string_end)},line));
                         it = string_end;
                         break;
                     }

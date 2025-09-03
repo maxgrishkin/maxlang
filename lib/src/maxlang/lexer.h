@@ -33,5 +33,5 @@
  * ```
  */
 namespace maxlang::lexer {
-    std::vector<token::Any> process(std::string_view code);
+    std::vector<std::pair<token::Any,int>> process(std::string_view code);
 }

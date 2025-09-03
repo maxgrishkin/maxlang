@@ -31,9 +31,11 @@ namespace maxlang::expression {
 
             // Восстанавливаем переменные
             auto result = ctx.returnValue.value_or(std::monostate{});
-            ctx.variables = std::move(oldVariables);
-            ctx.resetReturn();
-
+            if (!std::holds_alternative<std::monostate>(result) &&
+            !std::holds_alternative<int>(result) &&
+            !std::holds_alternative<std::string>(result)) {
+                throw std::runtime_error("Function returned invalid type");
+            }
             return result;
         };
 
@@ -52,18 +54,25 @@ namespace maxlang::expression {
             evaluatedArgs.push_back(arg->evaluate(context));
         }
 
-        // Сохраняем текущее состояние флагов
-        bool oldShouldReturn = context.shouldReturn;
-        std::optional<Value> oldReturnValue = context.returnValue;
+        // Сохраняем ВСЕ состояние контекста
+        Context savedContext;
+        savedContext.variables = context.variables; // копируем переменные
+        savedContext.arrays = context.arrays;       // копируем массивы
+        savedContext.shouldReturn = context.shouldReturn;
+        savedContext.returnValue = context.returnValue;
 
-        // Сбрасываем флаги перед вызовом функции
+        // Сбрасываем флаги возврата
         context.resetReturn();
 
+        // Вызываем функцию
         Value result = it->second.nativeFunction(context, std::move(evaluatedArgs));
 
-        // Восстанавливаем флаги после вызова функции
-        context.shouldReturn = oldShouldReturn;
-        context.returnValue = oldReturnValue;
+        // Восстанавливаем ТОЛЬКО переменные и массивы, но не флаги возврата
+        context.variables = std::move(savedContext.variables);
+        context.arrays = std::move(savedContext.arrays);
+
+        // НЕ восстанавливаем флаги возврата - они должны сохраняться
+        // context.shouldReturn и context.returnValue остаются как есть
 
         return result;
     }
