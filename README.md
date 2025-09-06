@@ -1,8 +1,8 @@
-# Maxim Language (maxlang)
+# M++
 
 ## Overview
 
-Maxim Language (maxlang) is a minimalist programming language designed with simplicity and expressiveness in
+M++ is a minimalist programming language designed with simplicity and expressiveness in
 mind. It aims to provide a clean and straightforward syntax.
 
 This programming language is not intended for real world applications; instead, it is a demonstration of implementing
@@ -34,5 +34,4 @@ cmake --build .
 # Usage
 
 ```bash
-suffer some bullshit
 ```

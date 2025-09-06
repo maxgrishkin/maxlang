@@ -1,5 +1,5 @@
 fn sum()
 {
-    return 0;
+    return 5;
 }
 print(sum());
