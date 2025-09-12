@@ -9,6 +9,7 @@ namespace {
               [&](std::monostate) { os << "<void>"; },
               [&](int v) { os << v; },
               [&](const std::string& v) { os << v; },
+                [&](char c) { os << c; },
               // Array больше не обрабатываем здесь
             },
             value);

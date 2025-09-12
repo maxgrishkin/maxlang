@@ -398,27 +398,50 @@ std::unique_ptr<maxlang::expression::For> maxlang::Parser::parseForStatement() {
     take(); // consume 'for'
     auto n = take();
     if (!std::holds_alternative<token::LPar>(n.first)) {
-        throw std::runtime_error(fmt::format("Expected '(' after 'for', at line {}",n.second));
+        throw std::runtime_error(fmt::format("Expected '(' after 'for', at line {}", n.second));
     }
 
-    // Парсим инициализацию (может быть пустой)
+    // Парсим инициализацию (может быть пустой, объявление переменной или выражение)
     std::unique_ptr<expression::Base> initialization = nullptr;
     if (!std::holds_alternative<token::Semicolon>(peek().first)) {
-        initialization = parseExpression();
-    }
-    n = take();
-    if (!std::holds_alternative<token::Semicolon>(take().first)) {
-        throw std::runtime_error(fmt::format("Expected ';' after for initialization at line {}",n.second));
+        // Проверяем, является ли это объявлением переменной (типа "var i = 0")
+        if (std::holds_alternative<token::Identifier>(peek().first)) {
+            auto identifierToken = peek();
+            std::string varName = std::get<token::Identifier>(identifierToken.first).value;
+
+            // Проверяем следующий токен - если это '=', то это объявление с инициализацией
+            auto nextToken = mTokens.size() > 1 ? mTokens[1] : std::pair<token::Any, int>{token::Semicolon{}, 0};
+
+            if (std::holds_alternative<token::Equal>(nextToken.first)) {
+                take(); // consume identifier
+                take(); // consume '='
+                auto initialValue = parseExpression();
+                initialization = std::make_unique<expression::VariableDeclaration>(
+                    std::move(varName), std::move(initialValue));
+            } else {
+                // Просто использование существующей переменной
+                initialization = parseExpression();
+            }
+        } else {
+            // Обычное выражение
+            initialization = parseExpression();
+        }
     }
 
+    n = take();
+    if (!std::holds_alternative<token::Semicolon>(n.first)) {
+        throw std::runtime_error(fmt::format("Expected ';' after for initialization at line {}", n.second));
+    }
+
+    // Остальная часть функции остается без изменений...
     // Парсим условие (может быть пустым)
     std::unique_ptr<expression::Base> condition = nullptr;
     if (!std::holds_alternative<token::Semicolon>(peek().first)) {
         condition = parseExpression();
     }
     n = take();
-    if (!std::holds_alternative<token::Semicolon>(take().first)) {
-        throw std::runtime_error(fmt::format("Expected ';' after for condition, at line {}",n.second));
+    if (!std::holds_alternative<token::Semicolon>(n.first)) {
+        throw std::runtime_error(fmt::format("Expected ';' after for condition, at line {}", n.second));
     }
 
     // Парсим инкремент (может быть пустым)
@@ -427,13 +450,13 @@ std::unique_ptr<maxlang::expression::For> maxlang::Parser::parseForStatement() {
         increment = parseExpression();
     }
     n = take();
-    if (!std::holds_alternative<token::RPar>(take().first)) {
-        throw std::runtime_error(fmt::format("Expected ')' after for increment, at line {}",n.second));
+    if (!std::holds_alternative<token::RPar>(n.first)) {
+        throw std::runtime_error(fmt::format("Expected ')' after for increment, at line {}", n.second));
     }
 
     // Парсим тело цикла
     if (!std::holds_alternative<token::LCurlyBracket>(peek().first)) {
-        throw std::runtime_error(fmt::format("Expected '{}' after for statement","{",peek().second));
+        throw std::runtime_error(fmt::format("Expected '{}' after for statement", "{", peek().second));
     }
     auto body = parseCommandBlock();
 

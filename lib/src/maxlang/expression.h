@@ -564,5 +564,19 @@ namespace maxlang::expression {
             return std::monostate {};
         }
     };
+    struct VariableDeclaration : Base {
+        VariableDeclaration(std::string name, std::unique_ptr<expression::Base> initialValue = nullptr)
+            : name(std::move(name)), initialValue(std::move(initialValue)) {}
+        ~VariableDeclaration() override = default;
+
+        std::string name;
+        std::unique_ptr<expression::Base> initialValue;
+
+        Value evaluate(Context& context) override {
+            Value value = initialValue ? initialValue->evaluate(context) : std::monostate{};
+            context.variables[name] = value;
+            return value;
+        }
+    };
 
 }

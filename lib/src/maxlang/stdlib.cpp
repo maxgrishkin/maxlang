@@ -1,6 +1,7 @@
 #include <iostream>
 #include "stdlib.h"
 #include <cstdlib>
+#include "value.h"
 #include "util.h"
 
 using namespace maxlang;
@@ -102,6 +103,7 @@ namespace {
         it->second->elements.pop_back();
         return value;
     }
+    maxlang::Value endl = "\n";
 }
 
 void maxlang::stdlib::init(maxlang::State& state) {
@@ -114,4 +116,5 @@ void maxlang::stdlib::init(maxlang::State& state) {
     DEFINE(array_length);
     DEFINE(array_push);
     DEFINE(array_pop);
+    state.context().variables["endl"] = { endl };
 }
