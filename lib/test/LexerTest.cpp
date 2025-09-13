@@ -24,7 +24,11 @@ fn main() {
         RCurlyBracket{},
     };
 
-    EXPECT_EQ(processed, expected);
+    // Сравниваем только токены (первые элементы пар), игнорируя номера строк
+    ASSERT_EQ(processed.size(), expected.size());
+    for (size_t i = 0; i < processed.size(); ++i) {
+        EXPECT_EQ(processed[i].first, expected[i]);
+    }
 }
 
 TEST(Lexer, Case2) {
@@ -35,5 +39,9 @@ TEST(Lexer, Case2) {
         String { .value = "hello" },
     };
 
-    EXPECT_EQ(processed, expected);
+    // Сравниваем только токены (первые элементы пар), игнорируя номера строк
+    ASSERT_EQ(processed.size(), expected.size());
+    for (size_t i = 0; i < processed.size(); ++i) {
+        EXPECT_EQ(processed[i].first, expected[i]);
+    }
 }

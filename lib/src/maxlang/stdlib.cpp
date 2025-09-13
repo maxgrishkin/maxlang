@@ -108,6 +108,7 @@ namespace {
 
 void maxlang::stdlib::init(maxlang::State& state) {
 #define DEFINE(name) state.context().functions[#name] = { name }
+#define DEFINE2(name) state.context().variables[#name] = { name }
 
     DEFINE(println);
     DEFINE(print);
@@ -116,5 +117,7 @@ void maxlang::stdlib::init(maxlang::State& state) {
     DEFINE(array_length);
     DEFINE(array_push);
     DEFINE(array_pop);
-    state.context().variables["endl"] = { endl };
+    DEFINE2(endl);
+    DEFINE2(true);
+    DEFINE2(false);
 }
