@@ -26,17 +26,20 @@ namespace {
         return str;
     }
 
-    maxlang::Value toint(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
+    maxlang::Value toInt(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 1) {
             throw std::runtime_error("toint expects 1 argument");
         }
         return std::visit(
             maxlang::match {
-              [](auto&& v) -> int { return int(v); },
-              [](const std::string& s) -> int {
-                  return std::stoi(s);
-              },
-              [](std::monostate) -> int { throw std::runtime_error("toint: can't convert void to int"); },
+                [](const std::string& s) -> int {
+                    return std::stoi(s);
+                },
+                [](const char& c) -> int {
+                    return std::stoi(std::to_string(c)) - 48;
+                },
+                [](std::monostate) -> int { throw std::runtime_error("toint: can't convert void to int"); },
+                [](auto&& v) -> int { return int(v); },
             },
             args[0]);
     }
@@ -113,7 +116,7 @@ void maxlang::stdlib::init(maxlang::State& state) {
     DEFINE(println);
     DEFINE(print);
     DEFINE(input);
-    DEFINE(toint);
+    DEFINE(toInt);
     DEFINE(array_length);
     DEFINE(array_push);
     DEFINE(array_pop);

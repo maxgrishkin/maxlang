@@ -12,6 +12,7 @@ namespace maxlang {
                     [&](std::monostate) { os << "<void>"; },
                     [&](int v) { os << v; },
                     [&](const std::string& v) { os << v; },
+                    [&](char c) { os << c; },
                 },
                 value);
         }

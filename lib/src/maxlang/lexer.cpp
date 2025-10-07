@@ -204,12 +204,19 @@ std::vector<std::pair<token::Any,int>> maxlang::lexer::process(std::string_view 
                         }
                         break;
                     case '\'': {
-                        auto string_end = std::ranges::find(std::ranges::subrange(std::next(remainingString.begin()), remainingString.end()), '\'');
-                        if (string_end == remainingString.end()) {
-                            throw std::runtime_error(fmt::format("String literal is not finished, at line {}", line));
+                        if (std::next(it) == code.end() || std::next(std::next(it)) == code.end()) {
+                            throw std::runtime_error(fmt::format("Char literal is not finished, at line {}", line));
                         }
-                        result.push_back(std::make_pair(String{.value = std::string(std::next(it), string_end)},line));
-                        it = string_end;
+
+                        char charValue = *std::next(it);
+
+                        // Проверяем закрывающую кавычку
+                        // if (*std::next(std::next(it)) != '\'') {
+                        //     throw std::runtime_error(fmt::format("Char literal must be exactly one character, at line {}", line));
+                        // }
+
+                        result.push_back(std::make_pair(token::Char{.value = charValue}, line));
+                        it = std::next(std::next(it)); // Пропускаем символ и закрывающую кавычку
                         break;
                     }
 

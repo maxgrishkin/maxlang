@@ -18,6 +18,9 @@ std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseExpression(int 
           [](token::String token) -> std::unique_ptr<expression::Base> {
               return std::make_unique<expression::Constant>(std::move(token.value));
           },
+          [](token::Char token) -> std::unique_ptr<expression::Base> {
+              return std::make_unique<expression::Constant>(token.value);
+          },
           [&](token::LPar token) -> std::unique_ptr<expression::Base> {
               auto lhs = parseExpression(0);
               auto n = take();
@@ -533,6 +536,7 @@ std::string maxlang::Parser::tokenToString(const maxlang::token::Any& token) {
             [](maxlang::token::MinusMinus)-> std::string  { return "--"; },
             [](const maxlang::token::Identifier& id)-> std::string  { return "identifier:" + id.value; },
             [](const maxlang::token::String& s)-> std::string  { return "string:\"" + s.value + "\""; },
+            [](const maxlang::token::Char& c) -> std::string  { return "char:'" + std::string(1, c.value) + "'"; },
             [](const maxlang::token::Integer& i)-> std::string  { return "integer:" + std::to_string(i.value); },
             [](auto&&) { return "unknown token"; },
         },

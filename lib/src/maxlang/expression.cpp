@@ -31,11 +31,18 @@ namespace maxlang::expression {
 
             // Восстанавливаем переменные
             auto result = ctx.returnValue.value_or(std::monostate{});
+
+            // ОБНОВЛЕННАЯ ПРОВЕРКА ТИПОВ - ДОБАВЛЕН CHAR
             if (!std::holds_alternative<std::monostate>(result) &&
-            !std::holds_alternative<int>(result) &&
-            !std::holds_alternative<std::string>(result)) {
+                !std::holds_alternative<int>(result) &&
+                !std::holds_alternative<std::string>(result) &&
+                !std::holds_alternative<char>(result)) { // Добавлена проверка для char
                 throw std::runtime_error("Function returned invalid type");
-            }
+                }
+
+            ctx.variables = std::move(oldVariables);
+            ctx.resetReturn();
+
             return result;
         };
 

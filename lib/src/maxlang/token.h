@@ -16,7 +16,10 @@ namespace maxlang::token {
         CONTINUE,
         ELSE,
     };
-
+    struct Char {
+        auto operator<=>(const Char&) const = default;
+        char value;
+    };
     struct LPar {
         auto operator<=>(const LPar&) const = default;
     };   // (
@@ -96,5 +99,5 @@ namespace maxlang::token {
 using Any = std::variant<
     Keyword, LPar, RPar, Equal, Equal2, LCurlyBracket, RCurlyBracket, Semicolon, Comma, Plus, Minus, Asterisk, Slash, Identifier,
     Integer, String,LSquareBracket,RSquareBracket,LAngleBracket,RAngleBracket,LAngleBracketEqual,RAngleBracketEqual,PlusPlus,MinusMinus,
-    NoEqual>;
+    NoEqual,Char>;
 }
