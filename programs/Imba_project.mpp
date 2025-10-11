@@ -1,2 +1,9 @@
-x = "5";
-println(toInt(x));
+for (i = 1;i<=1000;i++) {
+	for (j = 1;j<=1000;j++) {
+		k2 = Pow(i,2) + Pow(j,2);
+		k = Sqrt(k2);
+		if (Abc(Round(k) - k) <= 0.0000001) {
+			println(toString(i) + "^2 + " + toString(j) + "^2 =" + toString(toInt(k))+ "^2");
+		}
+	}
+}

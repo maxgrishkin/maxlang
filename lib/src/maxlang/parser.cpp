@@ -15,6 +15,9 @@ std::unique_ptr<maxlang::expression::Base> maxlang::Parser::parseExpression(int 
           [](token::Integer token) -> std::unique_ptr<expression::Base> {
               return std::make_unique<expression::Constant>(token.value);
           },
+          [](token::Float token) -> std::unique_ptr<expression::Base> {
+              return std::make_unique<expression::Constant>(token.value);
+          },
           [](token::String token) -> std::unique_ptr<expression::Base> {
               return std::make_unique<expression::Constant>(std::move(token.value));
           },
@@ -525,6 +528,7 @@ std::string maxlang::Parser::tokenToString(const maxlang::token::Any& token) {
             [](maxlang::token::Asterisk)-> std::string  { return "*"; },
             [](maxlang::token::Slash)-> std::string  { return "/"; },
             [](maxlang::token::Comma)-> std::string  { return ","; },
+            [](maxlang::token::Dot)-> std::string  { return "."; },
             [](maxlang::token::Equal)-> std::string  { return "="; },
             [](maxlang::token::Equal2)-> std::string  { return "=="; },
             [](maxlang::token::NoEqual)-> std::string  { return "!="; },
@@ -538,6 +542,7 @@ std::string maxlang::Parser::tokenToString(const maxlang::token::Any& token) {
             [](const maxlang::token::String& s)-> std::string  { return "string:\"" + s.value + "\""; },
             [](const maxlang::token::Char& c) -> std::string  { return "char:'" + std::string(1, c.value) + "'"; },
             [](const maxlang::token::Integer& i)-> std::string  { return "integer:" + std::to_string(i.value); },
+            [](const maxlang::token::Float& f)-> std::string  { return "float:" + std::to_string(f.value); },
             [](auto&&) { return "unknown token"; },
         },
         token);

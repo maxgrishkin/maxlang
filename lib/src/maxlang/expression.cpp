@@ -36,7 +36,8 @@ namespace maxlang::expression {
             if (!std::holds_alternative<std::monostate>(result) &&
                 !std::holds_alternative<int>(result) &&
                 !std::holds_alternative<std::string>(result) &&
-                !std::holds_alternative<char>(result)) { // Добавлена проверка для char
+                !std::holds_alternative<char>(result) &&
+                !std::holds_alternative<double>(result)) {
                 throw std::runtime_error("Function returned invalid type");
                 }
 

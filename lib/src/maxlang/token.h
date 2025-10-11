@@ -20,6 +20,10 @@ namespace maxlang::token {
         auto operator<=>(const Char&) const = default;
         char value;
     };
+    struct Float {
+        auto operator<=>(const Float&) const = default;
+        double value;
+    };
     struct LPar {
         auto operator<=>(const LPar&) const = default;
     };   // (
@@ -68,6 +72,9 @@ namespace maxlang::token {
     struct Comma {
         auto operator<=>(const Comma&) const = default;
     };   // ,
+    struct Dot {
+        auto operator<=>(const Dot&) const = default;
+    };   // .
     struct Equal {
         auto operator<=>(const Equal&) const = default;
     };   // =
@@ -99,5 +106,5 @@ namespace maxlang::token {
 using Any = std::variant<
     Keyword, LPar, RPar, Equal, Equal2, LCurlyBracket, RCurlyBracket, Semicolon, Comma, Plus, Minus, Asterisk, Slash, Identifier,
     Integer, String,LSquareBracket,RSquareBracket,LAngleBracket,RAngleBracket,LAngleBracketEqual,RAngleBracketEqual,PlusPlus,MinusMinus,
-    NoEqual,Char>;
+    NoEqual,Char,Dot,Float>;
 }

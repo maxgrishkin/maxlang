@@ -48,6 +48,9 @@ namespace maxlang::expression {
                       if constexpr (requires { Op{}(lhs, rhs); }) {
                           return Op{}(lhs, rhs);
                       }
+                      if constexpr (requires { Op{}(lhs, rhs); }) {
+                          return Op{}(lhs, rhs);
+                      }
                       throw std::runtime_error(fmt::format("Can't perform {} on {} and {}", typeid(Op).name(), typeid(lhs).name(), typeid(rhs).name()));
                   },
                 },

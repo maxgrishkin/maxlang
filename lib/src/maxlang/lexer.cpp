@@ -79,13 +79,32 @@ std::vector<std::pair<token::Any,int>> maxlang::lexer::process(std::string_view 
                         }
 
                         if (std::isdigit(*it)) {
-                            auto end = std::ranges::find_if(remainingString, [](char c) {
+                            bool isFloat = false;
+                            auto end = std::ranges::find_if(remainingString, [&](char c) {
+                                if (c == '.') {
+                                    if (isFloat) return true; // Уже была точка
+                                    isFloat = true;
+                                    return false;
+                                }
                                 return !std::isdigit(c);
                             });
-                            std::string_view digitString(it, end);
-                            int integer = 0;
-                            std::from_chars(digitString.data(), digitString.data() + digitString.size(), integer);
-                            result.push_back(std::make_pair(Integer{.value = integer},line));
+
+                            std::string_view numberString(it, end);
+
+                            if (isFloat) {
+                                double floatValue = 0.0;
+                                // Используем std::stod для простоты (хотя это не самый безопасный способ)
+                                try {
+                                    floatValue = std::stod(std::string(numberString));
+                                } catch (...) {
+                                    throw std::runtime_error(fmt::format("Invalid float literal: {}, at line {}", numberString, line));
+                                }
+                                result.push_back(std::make_pair(Float{.value = floatValue}, line));
+                            } else {
+                                int integer = 0;
+                                std::from_chars(numberString.data(), numberString.data() + numberString.size(), integer);
+                                result.push_back(std::make_pair(Integer{.value = integer}, line));
+                            }
                             it = std::prev(end);
                             break;
                         }
@@ -159,6 +178,16 @@ std::vector<std::pair<token::Any,int>> maxlang::lexer::process(std::string_view 
                                 result.push_back(std::make_pair(MinusMinus{},line));
                                 break;
                             }
+                            if (std::isdigit(*std::next(it))) {
+                                result.push_back(std::make_pair(Integer{.value = 0},line));
+                                result.push_back(std::make_pair(Minus{},line));
+                                break;
+                            }
+                            if (std::isalpha(*std::next(it))) {
+                                result.push_back(std::make_pair(Integer{.value = 0},line));
+                                result.push_back(std::make_pair(Minus{},line));
+                                break;
+                            }
                         }
                         result.push_back(std::make_pair(Minus{},line));
                         break;
@@ -183,7 +212,9 @@ std::vector<std::pair<token::Any,int>> maxlang::lexer::process(std::string_view 
                     case ',':
                         result.push_back(std::make_pair(Comma{},line));
                         break;
-
+                    case '.':
+                        result.push_back(std::make_pair(Dot{},line));
+                        break;
                     case '=':
                         if (std::next(it) != code.end()) {
                             if (*std::next(it) == '=') {

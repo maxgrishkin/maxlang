@@ -14,5 +14,5 @@ namespace maxlang {
 
     // Только объявление
     int getIntFromValue(const Value& value, const std::string& context = "");
-
+    double getDoubleFromValue(const Value& value, const std::string& context = "");
 }
