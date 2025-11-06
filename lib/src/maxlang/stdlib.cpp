@@ -1,6 +1,14 @@
 #include <iostream>
 #include "stdlib.h"
-#include <cstdlib>
+#ifdef  __linux__
+    #include <termios.h>
+    #include <unistd.h>
+#elif _WIN32
+    #include <conio.h>
+    #include <windows.h>
+#endif
+#include <random>
+
 #include "value.h"
 #include "util.h"
 
@@ -20,10 +28,61 @@ namespace {
         }
         return std::monostate();
     }
+    maxlang::Value flush(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
+        std::cout << std::flush;
+        return std::monostate();
+    }
+    maxlang::Value Clear(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
+    #ifdef  __linux__
+        system("clear");
+    #elif _WIN32
+        system("cls");
+    #endif
+        return std::monostate();
+    }
     maxlang::Value input(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         std::string str;
         std::cin >> str;
         return str;
+    }
+
+    maxlang::Value getch(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
+        #ifdef  __linux__
+            struct termios oldt, newt;
+            tcgetattr(STDIN_FILENO, &oldt);
+            newt = oldt;
+
+            newt.c_lflag &= ~(ICANON | ECHO);
+            newt.c_cc[VMIN] = 0;  // НЕБЛОКИРУЮЩИЙ режим - возвращает 0 если нет данных
+            newt.c_cc[VTIME] = 0;
+
+            tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+            char c = 0;
+            int bytes = read(STDIN_FILENO, &c, 1);
+
+            tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+            if (bytes > 0) {
+                return c;
+            } else {
+                return char();
+            }
+        #elif _WIN32
+            if (_kbhit()) {
+                return _getch();
+            }
+            return 0;
+        #endif
+    }
+
+    maxlang::Value Sleep(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
+        if (args.size() != 1) {
+            throw std::runtime_error("Sleep expects 1 argument");
+        }
+        usleep(getIntFromValue(args[0]));
+
+        return std::monostate();
     }
 
     maxlang::Value Round(maxlang::Context& state, const std::vector<maxlang::Value>& args);
@@ -78,8 +137,8 @@ namespace {
                 [](const std::string& s) -> std::string {
                     return s;
                 },
-                [](const char& c) -> std::string {
-                    return std::string(1, c);
+                [](char c) -> std::string {
+                    return std::to_string(c);
                 },
                 [](int v) -> std::string { return std::to_string(v); },
                 [](double v) -> std::string { return std::to_string(v); },
@@ -89,74 +148,129 @@ namespace {
     }
 
     maxlang::Value array_length(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
-        if (args.size() != 1) {
-            throw std::runtime_error("array_length expects 1 argument");
-        }
+    if (args.size() != 1) {
+        throw std::runtime_error("array_length expects 1 argument");
+    }
 
-        if (!std::holds_alternative<std::string>(args[0])) {
+    // Получаем имя массива из переменной или напрямую
+    std::string arrayName;
+    if (std::holds_alternative<std::string>(args[0])) {
+        arrayName = std::get<std::string>(args[0]);
+    } else {
+        auto varName = toString(state, {args[0]});
+        if (std::holds_alternative<std::string>(varName)) {
+            arrayName = std::get<std::string>(varName);
+        } else {
             throw std::runtime_error("array_length: expected array name (string)");
         }
-
-        std::string arrayName = std::get<std::string>(args[0]);
-        auto it = state.arrays.find(arrayName);
-        if (it == state.arrays.end()) {
-            throw std::runtime_error("Array not found: " + arrayName);
-        }
-
-        return static_cast<int>(it->second->elements.size());
     }
 
-    maxlang::Value array_push(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
-        if (args.size() < 2) {
-            throw std::runtime_error("array_push expects at least 2 arguments");
-        }
+    auto it = state.arrays.find(arrayName);
+    if (it == state.arrays.end()) {
+        throw std::runtime_error("Array not found: " + arrayName);
+    }
 
-        if (!std::holds_alternative<std::string>(args[0])) {
+    return static_cast<int>(it->second->elements.size());
+}
+
+maxlang::Value array_push(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
+    if (args.size() < 2) {
+        throw std::runtime_error("array_push expects at least 2 arguments");
+    }
+
+    // Получаем имя массива из переменной или напрямую
+    std::string arrayName;
+    if (std::holds_alternative<std::string>(args[0])) {
+        arrayName = std::get<std::string>(args[0]);
+    } else {
+        auto varName = toString(state, {args[0]});
+        if (std::holds_alternative<std::string>(varName)) {
+            arrayName = std::get<std::string>(varName);
+        } else {
             throw std::runtime_error("array_push: expected array name (string) as first argument");
         }
-
-        std::string arrayName = std::get<std::string>(args[0]);
-        auto it = state.arrays.find(arrayName);
-        if (it == state.arrays.end()) {
-            throw std::runtime_error("Array not found: " + arrayName);
-        }
-
-        for (size_t i = 1; i < args.size(); ++i) {
-            it->second->elements.push_back(args[i]);
-        }
-
-        return static_cast<int>(it->second->elements.size());
     }
 
-    maxlang::Value array_pop(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
-        if (args.size() != 1) {
-            throw std::runtime_error("array_pop expects 1 argument");
-        }
+    auto it = state.arrays.find(arrayName);
+    if (it == state.arrays.end()) {
+        throw std::runtime_error("Array not found: " + arrayName);
+    }
 
-        if (!std::holds_alternative<std::string>(args[0])) {
+    for (size_t i = 1; i < args.size(); ++i) {
+        it->second->elements.push_back(args[i]);
+    }
+
+    return static_cast<int>(it->second->elements.size());
+}
+
+maxlang::Value array_pop(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
+    if (args.size() != 1) {
+        throw std::runtime_error("array_pop expects 1 argument");
+    }
+
+    // Получаем имя массива из переменной или напрямую
+    std::string arrayName;
+    if (std::holds_alternative<std::string>(args[0])) {
+        arrayName = std::get<std::string>(args[0]);
+    } else {
+        auto varName = toString(state, {args[0]});
+        if (std::holds_alternative<std::string>(varName)) {
+            arrayName = std::get<std::string>(varName);
+        } else {
             throw std::runtime_error("array_pop: expected array name (string)");
         }
+    }
 
-        std::string arrayName = std::get<std::string>(args[0]);
+    auto it = state.arrays.find(arrayName);
+    if (it == state.arrays.end()) {
+        throw std::runtime_error("Array not found: " + arrayName);
+    }
+
+    if (it->second->elements.empty()) {
+        throw std::runtime_error("array_pop: cannot pop from empty array");
+    }
+
+    auto value = it->second->elements.back();
+    it->second->elements.pop_back();
+    return value;
+}
+
+    maxlang::Value array_shift(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
+        if (args.size() != 1) {
+            throw std::runtime_error("array_shift expects 1 argument");
+        }
+
+        // Получаем имя массива из переменной или напрямую
+        std::string arrayName;
+        if (std::holds_alternative<std::string>(args[0])) {
+            arrayName = std::get<std::string>(args[0]);
+        } else {
+            // Если передан не строковый литерал, пытаемся получить значение переменной
+            auto varName = toString(state, {args[0]});
+            if (std::holds_alternative<std::string>(varName)) {
+                arrayName = std::get<std::string>(varName);
+            } else {
+                throw std::runtime_error("array_shift: expected array name (string)");
+            }
+        }
+
         auto it = state.arrays.find(arrayName);
         if (it == state.arrays.end()) {
             throw std::runtime_error("Array not found: " + arrayName);
         }
 
         if (it->second->elements.empty()) {
-            throw std::runtime_error("array_pop: cannot pop from empty array");
+            throw std::runtime_error("array_shift: cannot shift from empty array");
         }
 
-        auto value = it->second->elements.back();
-        it->second->elements.pop_back();
+        auto value = it->second->elements.front();
+        it->second->elements.erase(it->second->elements.begin());
         return value;
     }
-
 
     maxlang::Value e = 2.71828;
     maxlang::Value pi = 3.14159;
 
-    // Ваша реализация Abc
     maxlang::Value Abc(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 1) {
             throw std::runtime_error("Abc expects 1 argument");
@@ -182,7 +296,6 @@ namespace {
             args[0]);
     }
 
-    // Ваша реализация Factorial
     maxlang::Value Factorial(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 1) {
             throw std::runtime_error("Factorial expects 1 argument");
@@ -205,7 +318,6 @@ namespace {
 
     maxlang::Value Ln(maxlang::Context& state, const std::vector<maxlang::Value>& args);
 
-    // Ваша реализация Pow
     maxlang::Value Pow(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 2) {
             throw std::runtime_error("Pow expects 2 arguments");
@@ -246,7 +358,6 @@ namespace {
             int step = 1;
             int result_int = 1;
 
-            // Ваша реализация Ln
             while (getDoubleFromValue(Abc(state, {getDoubleFromValue(Pow(state, {e, static_cast<double>(result_int)}),"Pow") - a})) > acuracity) {
                 if (getDoubleFromValue(Pow(state, {getDoubleFromValue(e,"Pow"), static_cast<double>(result_int)}),"Pow") < a) {
                     result_int += step;
@@ -270,7 +381,6 @@ namespace {
         return getDoubleFromValue(Pow(state, {e, b * getDoubleFromValue(Ln(state, {Abc(state, {a})}),"Pow")}),"Pow") * (b == static_cast<int>(b) ? 1 : -1);
     }
 
-    // Ваша реализация Sqr
     maxlang::Value Sqr(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 1) {
             throw std::runtime_error("Sqr expects 1 argument");
@@ -280,7 +390,6 @@ namespace {
         return a * a;
     }
 
-    // Ваша реализация isSimple
     maxlang::Value isSimple(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 1) {
             throw std::runtime_error("isSimple expects 1 argument");
@@ -295,7 +404,6 @@ namespace {
         return 1; // true
     }
 
-    // Ваша реализация Root
     maxlang::Value Root(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 2) {
             throw std::runtime_error("Root expects 2 arguments");
@@ -329,7 +437,6 @@ namespace {
         return result;
     }
 
-    // Ваша реализация Sqrt
     maxlang::Value Sqrt(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 1) {
             throw std::runtime_error("Sqrt expects 1 argument");
@@ -358,7 +465,6 @@ namespace {
         return result;
     }
 
-    // Ваша реализация Log
     maxlang::Value Log(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 2) {
             throw std::runtime_error("Log expects 2 arguments");
@@ -392,7 +498,6 @@ namespace {
         return result;
     }
 
-    // Ваша реализация Ln
     maxlang::Value Ln(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 1) {
             throw std::runtime_error("Ln expects 1 argument");
@@ -421,7 +526,6 @@ namespace {
         return result;
     }
 
-    // Ваша реализация Fibonachi
     maxlang::Value Fibonachi(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 1) {
             throw std::runtime_error("Fibonachi expects 1 argument");
@@ -443,7 +547,6 @@ namespace {
         return static_cast<int>(c);
     }
 
-    // Ваша реализация Round
     maxlang::Value Round(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 1) {
             throw std::runtime_error("Round expects 1 argument");
@@ -453,7 +556,6 @@ namespace {
         return std::round(a);
     }
 
-    // Ваша реализация Sigmoid
     maxlang::Value Sigmoid(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
         if (args.size() != 1) {
             throw std::runtime_error("Sigmoid expects 1 argument");
@@ -463,8 +565,17 @@ namespace {
         double e = 2.71828;
         return 1.0 / (1.0 + getDoubleFromValue(Pow(state, {e, a * (-1)})));
     }
+    maxlang::Value Random(maxlang::Context& state, const std::vector<maxlang::Value>& args) {
+        if (args.size() != 2) {
+            throw std::runtime_error("Random expects 2 argument");
+        }
+        std::random_device rd;
+        std::mt19937 rand(rd());
+        std::uniform_int_distribution<int> dist(getIntFromValue(args[0]),getIntFromValue(args[1]));
 
-    // Константы
+        return dist(rand);
+    }
+
     maxlang::Value endl = '\n';
 }
 
@@ -474,7 +585,11 @@ void maxlang::stdlib::init(maxlang::State& state) {
 
     FUNCTION(println);
     FUNCTION(print);
+    FUNCTION(Sleep);
+    FUNCTION(Clear);
+    FUNCTION(flush);
     FUNCTION(input);
+    FUNCTION(getch);
     FUNCTION(toInt);
     FUNCTION(toDouble);
     FUNCTION(toString);
@@ -482,6 +597,7 @@ void maxlang::stdlib::init(maxlang::State& state) {
     FUNCTION(array_length);
     FUNCTION(array_push);
     FUNCTION(array_pop);
+    FUNCTION(array_shift);
 
     FUNCTION(Abc);
     FUNCTION(Factorial);
@@ -495,6 +611,7 @@ void maxlang::stdlib::init(maxlang::State& state) {
     FUNCTION(Fibonachi);
     FUNCTION(Round);
     FUNCTION(Sigmoid);
+    FUNCTION(Random);
 
     VARIABLE(endl);
     VARIABLE(e);
