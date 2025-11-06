@@ -1,13 +1,12 @@
 #pragma once
 
-#include "value.h"
+#include "value.h" // ДОБАВЬТЕ ЭТУ СТРОКУ
 #include <vector>
 #include <memory>
 #include <string>
 #include <iostream>
 
 namespace maxlang {
-
     struct Array {
         std::vector<Value> elements;
         std::string name; // Имя для отладки
@@ -39,9 +38,25 @@ namespace maxlang {
             }
             elements.pop_back();
         }
-    };
-    void printArray(std::ostream& os, const Array& array);
-    // Объявите оператор вывода внутри пространства имен
-    std::ostream& operator<<(std::ostream& os, const Array& array);
 
+        // Операторы сравнения для массивов
+        bool operator==(const Array& other) const {
+            if (elements.size() != other.elements.size()) {
+                return false;
+            }
+            for (size_t i = 0; i < elements.size(); ++i) {
+                if (elements[i] != other.elements[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool operator!=(const Array& other) const {
+            return !(*this == other);
+        }
+    };
+
+    void printArray(std::ostream& os, const Array& array);
+    std::ostream& operator<<(std::ostream& os, const Array& array);
 }

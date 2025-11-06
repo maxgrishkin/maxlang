@@ -1,4 +1,7 @@
 #include "util.h"
+
+#include <stdexcept>
+
 #include "value.h"
 
 namespace maxlang {

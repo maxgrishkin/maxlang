@@ -5,6 +5,7 @@
 #include <map>
 #include <functional>
 #include "array.h"
+#include <stdexcept>
 #include "context.h"
 #include "fmt/format.h"
 #include "util.h"
@@ -32,7 +33,7 @@ namespace maxlang::expression {
         Value evaluate(Context& context) override { return value; }
     };
 
-    template <std::invocable<int, int> Op>
+    template <typename Op>
     struct Binary : Base {
         Binary(std::unique_ptr<expression::Base> lhs, std::unique_ptr<expression::Base> rhs)
           : lhs(std::move(lhs)), rhs(std::move(rhs)) {}
@@ -44,17 +45,91 @@ namespace maxlang::expression {
         Value evaluate(Context& context) override {
             return std::visit(
                 maxlang::match {
-                  [](auto&& lhs, auto&& rhs) -> Value {
-                      if constexpr (requires { Op{}(lhs, rhs); }) {
-                          return Op{}(lhs, rhs);
+                  [](auto&& lhs_val, auto&& rhs_val) -> Value {
+                      if constexpr (requires { Op{}(lhs_val, rhs_val); }) {
+                          return Op{}(lhs_val, rhs_val);
                       }
-                      if constexpr (requires { Op{}(lhs, rhs); }) {
-                          return Op{}(lhs, rhs);
-                      }
-                      throw std::runtime_error(fmt::format("Can't perform {} on {} and {}", typeid(Op).name(), typeid(lhs).name(), typeid(rhs).name()));
+                      throw std::runtime_error(fmt::format("Can't perform operation on {} and {}",
+                          typeid(lhs_val).name(), typeid(rhs_val).name()));
                   },
                 },
                 lhs->evaluate(context), rhs->evaluate(context));
+        }
+    };
+
+    // Специализация для оператора равенства ==
+    template <>
+    struct Binary<std::equal_to<>> : Base {
+        Binary(std::unique_ptr<expression::Base> lhs, std::unique_ptr<expression::Base> rhs)
+          : lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+        ~Binary() override = default;
+
+        std::unique_ptr<expression::Base> lhs;
+        std::unique_ptr<expression::Base> rhs;
+
+        Value evaluate(Context& context) override {
+            auto lhs_val = lhs->evaluate(context);
+            auto rhs_val = rhs->evaluate(context);
+
+            // Специальная обработка для сравнения массивов
+            if (std::holds_alternative<std::string>(lhs_val) && std::holds_alternative<std::string>(rhs_val)) {
+                std::string lhs_name = std::get<std::string>(lhs_val);
+                std::string rhs_name = std::get<std::string>(rhs_val);
+
+                auto lhs_it = context.arrays.find(lhs_name);
+                auto rhs_it = context.arrays.find(rhs_name);
+
+                if (lhs_it != context.arrays.end() && rhs_it != context.arrays.end()) {
+                    return *(lhs_it->second) == *(rhs_it->second) ? 1 : 0;
+                }
+            }
+
+            // Стандартная логика для других типов
+            return std::visit(
+                maxlang::match {
+                  [](auto&& l, auto&& r) -> Value {
+                      return (l == r) ? 1 : 0;
+                  },
+                },
+                lhs_val, rhs_val);
+        }
+    };
+
+    // Специализация для оператора неравенства !=
+    template <>
+    struct Binary<std::not_equal_to<>> : Base {
+        Binary(std::unique_ptr<expression::Base> lhs, std::unique_ptr<expression::Base> rhs)
+          : lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+        ~Binary() override = default;
+
+        std::unique_ptr<expression::Base> lhs;
+        std::unique_ptr<expression::Base> rhs;
+
+        Value evaluate(Context& context) override {
+            auto lhs_val = lhs->evaluate(context);
+            auto rhs_val = rhs->evaluate(context);
+
+            // Специальная обработка для сравнения массивов
+            if (std::holds_alternative<std::string>(lhs_val) && std::holds_alternative<std::string>(rhs_val)) {
+                std::string lhs_name = std::get<std::string>(lhs_val);
+                std::string rhs_name = std::get<std::string>(rhs_val);
+
+                auto lhs_it = context.arrays.find(lhs_name);
+                auto rhs_it = context.arrays.find(rhs_name);
+
+                if (lhs_it != context.arrays.end() && rhs_it != context.arrays.end()) {
+                    return *(lhs_it->second) != *(rhs_it->second) ? 1 : 0;
+                }
+            }
+
+            // Стандартная логика для других типов
+            return std::visit(
+                maxlang::match {
+                  [](auto&& l, auto&& r) -> Value {
+                      return (l != r) ? 1 : 0;
+                  },
+                },
+                lhs_val, rhs_val);
         }
     };
 

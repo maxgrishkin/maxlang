@@ -68,7 +68,7 @@ std::vector<std::pair<token::Any,int>> maxlang::lexer::process(std::string_view 
                                 {"in", Keyword::IN},
                                 {"break", Keyword::BREAK},
                                 {"continue", Keyword::CONTINUE},
-                        };
+                            };
 
                             if (auto keyword = keywords.find(valueString); keyword != keywords.end()) {
                                 result.push_back(std::make_pair(keyword->second,line));

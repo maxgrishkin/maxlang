@@ -1,9 +1,134 @@
-for (i = 1;i<=1000;i++) {
-	for (j = 1;j<=1000;j++) {
-		k2 = Pow(i,2) + Pow(j,2);
-		k = Sqrt(k2);
-		if (Abc(Round(k) - k) <= 0.0000001) {
-			println(toString(i) + "^2 + " + toString(j) + "^2 =" + toString(toInt(k))+ "^2");
+xy = [[2,3],[2,4]];
+apple = [1,1];
+Board = [['-','-','-','-','-','-','-','-','-','-'],
+		 ['-','-','-','-','-','-','-','-','-','-'],
+		 ['-','-','-','-','-','-','-','-','-','-'],
+		 ['-','-','-','-','-','-','-','-','-','-'],
+		 ['-','-','-','-','-','-','-','-','-','-'],
+		 ['-','-','-','-','-','-','-','-','-','-'],
+		 ['-','-','-','-','-','-','-','-','-','-'],
+		 ['-','-','-','-','-','-','-','-','-','-'],
+		 ['-','-','-','-','-','-','-','-','-','-'],
+		 ['-','-','-','-','-','-','-','-','-','-']];
+
+input = ' ';
+direction = ' ';
+
+apple = [toInt(Random(0,array_length(Board[0]) - 1)),toInt(Random(0,array_length(Board) - 1))];
+
+while (true) {
+	Clear();
+	for (i = 0;i<(array_length(Board));i++) {
+		for (j = 0;j<(array_length(Board));j++) {
+			print(Board[i][j]);
+		}
+		print(endl);
+	}
+
+	Sleep(300000);
+
+	input = getch();
+
+	if (input == 'w') {
+		direction = 'w';
+	}
+	if (input == 's') {
+		direction = 's';
+	}
+	if (input == 'a') {
+		direction = 'a';
+	}
+	if (input == 'd') {
+		direction = 'd';
+	}
+
+	if (direction == 'w') {
+		if ((xy[array_length(xy) - 1][1]) > 0) {
+			if ([(xy[array_length(xy) - 1][0]),(xy[array_length(xy) - 1][1]) - 1] == apple) {
+				array_push(xy, [(xy[array_length(xy) - 1][0]),(xy[array_length(xy) - 1][1]) - 1]);
+				while (true) {
+					apple = [toInt(Random(0,array_length(Board[0]) - 1)),toInt(Random(0,array_length(Board) - 1))];
+					for (i = 0;i < array_length(xy);i++) {
+						if (apple == [toInt(xy[i][1]),toInt(xy[i][0])]) {
+							continue;
+						}
+					}
+					break;
+				}
+			}
+			else {
+				array_push(xy, [(xy[array_length(xy) - 1][0]),(xy[array_length(xy) - 1][1]) - 1]);
+				array_shift(xy);
+			}
 		}
 	}
+	if (direction == 's') {
+		if ((xy[array_length(xy) - 1][1]) < (array_length(Board) - 1)) {
+			if ([(xy[array_length(xy) - 1][0]),(xy[array_length(xy) - 1][1]) - 1] == apple) {
+				array_push(xy, [(xy[array_length(xy) - 1][0]),(xy[array_length(xy) - 1][1]) + 1]);
+				while (true) {
+					apple = [toInt(Random(0,array_length(Board[0]) - 1)),toInt(Random(0,array_length(Board) - 1))];
+					for (i = 0;i < array_length(xy);i++) {
+						if (apple == [toInt(xy[i][1]),toInt(xy[i][0])]) {
+							continue;
+						}
+					}
+					break;
+				}
+			}
+			else {
+				array_push(xy, [(xy[array_length(xy) - 1][0]),(xy[array_length(xy) - 1][1]) + 1]);
+				array_shift(xy);
+			}
+		}
+	}
+	if (direction == 'a') {
+		if ((xy[array_length(xy) - 1][0]) > 0) {
+			if ([(xy[array_length(xy) - 1][0]) - 1,(xy[array_length(xy) - 1][1])] == apple) {
+				array_push(xy, [(xy[array_length(xy) - 1][0]) - 1,(xy[array_length(xy) - 1][1])]);
+				while (true) {
+					apple = [toInt(Random(0,array_length(Board[0]) - 1)),toInt(Random(0,array_length(Board) - 1))];
+					for (i = 0;i < array_length(xy);i++) {
+						if (apple == [toInt(xy[i][1]),toInt(xy[i][0])]) {
+							continue;
+						}
+					}
+					break;
+				}
+			}
+			else {
+				array_push(xy, [(xy[array_length(xy) - 1][0]) - 1,(xy[array_length(xy) - 1][1])]);
+				array_shift(xy);
+			}
+		}
+	}
+	if (direction == 'd') {
+		if ((xy[array_length(xy) - 1][0]) < (array_length(Board[0]) - 1)) {
+			if ([(xy[array_length(xy) - 1][0]) + 1,(xy[array_length(xy) - 1][1])] == apple) {
+				array_push(xy, [(xy[array_length(xy) - 1][0]) + 1,(xy[array_length(xy) - 1][1])]);
+				while (true) {
+					apple = [toInt(Random(0,array_length(Board[0]) - 1)),toInt(Random(0,array_length(Board) - 1))];
+					for (i = 0;i < array_length(xy);i++) {
+						if (apple == [toInt(xy[i][1]),toInt(xy[i][0])]) {
+							continue;
+						}
+					}
+					break;
+				}
+			}
+			else {
+				array_push(xy, [(xy[array_length(xy) - 1][0]) + 1,(xy[array_length(xy) - 1][1])]);
+				array_shift(xy);
+			}
+		}
+	}
+	for (i = 0;i<(array_length(Board));i++) {
+		for (j = 0;j<(array_length(Board));j++) {
+			(Board[i][j]) = '-';
+		}
+	}
+	for (i = 0;i < array_length(xy);i++) {
+		Board[xy[i][1]][xy[i][0]] = '#';
+	}
+	Board[apple[1]][apple[0]] = 'O';
 }
